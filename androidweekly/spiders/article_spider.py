@@ -1,14 +1,6 @@
 # -*- coding: utf-8 -*-
 import scrapy
-from androidweekly.items import AndroidWeeklyItem
-# from scrapy import cmdline
-from scrapy.crawler import CrawlerProcess
-from twisted.internet import reactor, defer
-from scrapy.crawler import CrawlerRunner
-from scrapy.utils.log import configure_logging
-
 from androidweekly.items import ArticleItem
-# from androidweekly.pipelines import ArticlePipeline
 
 host = 'http://www.androidweekly.cn'
 
@@ -19,7 +11,7 @@ class ArticleSpider(scrapy.Spider):
     start_urls = []
     items = []
     custom_settings = {
-    'ITEM_PIPELINES':{'androidweekly.pipelines.ArticlePipeline': 300},
+        'ITEM_PIPELINES': {'androidweekly.pipelines.ArticlePipeline': 300},
     }
 
     def __init__(self, name=None, items=None, **kwargs):
@@ -30,9 +22,12 @@ class ArticleSpider(scrapy.Spider):
         self.items = items
 
     def parse(self, response):
+        weekly_id = None
         for item in self.items:
-            print item['id']
             if host + item['url'] == response.url:
+                # 如果id没有值说明没有存入数据库
+                if 'id' not in item.keys():
+                    return
                 weekly_id = item['id']
                 break
 

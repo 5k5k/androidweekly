@@ -7,8 +7,8 @@
 # import codecs
 # import json
 import pymysql
-from androidweekly.spiders.weekly_spider import WeeklySpider
-from androidweekly.spiders.article_spider import ArticleSpider
+from scrapy.exceptions import DropItem
+import redis
 
 
 def db_handler():
@@ -22,17 +22,16 @@ def db_handler():
     return conn
 
 
-class AndroidweeklyPipeline(object):
-    # def __init__(self):
-    #     self.file = codecs.open('items.json', 'w', encoding='utf-8')
+pool = redis.ConnectionPool(host='localhost', port=6379, db=0)
+r = redis.StrictRedis(connection_pool=pool)
 
+
+# 存储周列表页信息
+class AndroidweeklyPipeline(object):
     def process_item(self, item, spider):
-        # line = json.dumps(dict(item)) + "\n"
-        # self.file.write(line.decode('unicode_escape'))
         db = db_handler()
         cursor = db.cursor()
 
-        # if spider == WeeklySpider:
         sql = 'insert into androidweekly.weekly_page(title,author,img,url) VALUES (%s,%s,%s,%s)'
         try:
             cursor.execute(sql, (item['title'], item['author'], item['img'], item['url']))
@@ -41,39 +40,15 @@ class AndroidweeklyPipeline(object):
         except Exception, e:
             print e
             db.rollback()
-        # elif spider == ArticleSpider:
-        #     sql = 'insert into androidweekly.article(title,url,page_id,category,introduction) VALUES (%s,%s,%d,%s,%s)'
-        #     try:
-        #         cursor.execute(sql,
-        #                        (item['title'], item['url'], item['weekly_id'], item['category'], item['introduction']))
-        #         db.commit()
-        #     except Exception, e:
-        #         print e
-        #         db.rollback()
-
         return item
 
 
+# 存储文章信息
 class ArticlePipeline(object):
-    # def __init__(self):
-    #     self.file = codecs.open('items.json', 'w', encoding='utf-8')
-
     def process_item(self, item, spider):
-        # line = json.dumps(dict(item)) + "\n"
-        # self.file.write(line.decode('unicode_escape'))
         db = db_handler()
         cursor = db.cursor()
 
-        # if spider == WeeklySpider:
-        #     sql = 'insert into androidweekly.weekly_page(title,author,img,url) VALUES (%s,%s,%s,%s)'
-        #     try:
-        #         cursor.execute(sql, (item['title'], item['author'], item['img'], item['url']))
-        #         db.commit()
-        #         item['id'] = cursor.lastrowid
-        #     except Exception, e:
-        #         print e
-        #         db.rollback()
-        # elif spider == ArticleSpider:
         sql = 'insert into androidweekly.article(title,url,page_id,category,introduction) VALUES (%s,%s,%s,%s,%s)'
         try:
             cursor.execute(sql,
@@ -82,5 +57,14 @@ class ArticlePipeline(object):
         except Exception, e:
             print e
             db.rollback()
+        return item
 
+
+# 用redis去重
+class DuplicatesWeeklyPipeline(object):
+    def process_item(self, item, spider):
+        if r.exists('weekly url:%s' % item['url']):
+            raise DropItem("Duplicate item found: %s" % item)
+        else:
+            r.set('weekly url:%s' % item['url'], 1)
         return item

@@ -68,9 +68,9 @@ ROBOTSTXT_OBEY = True
 #ITEM_PIPELINES = {
 #    'androidweekly.pipelines.SomePipeline': 300,
 #}
-ITEM_PIPELINES = {
-    'androidweekly.pipelines.AndroidweeklyPipeline': 300,
-}
+# ITEM_PIPELINES = {
+#     'androidweekly.pipelines.AndroidweeklyPipeline': 300,
+# }
 
 
 # Enable and configure the AutoThrottle extension (disabled by default)
